@@ -11,3 +11,6 @@ langchain-openai
 langchain-chroma
 langchain-text-splitters
 python-multipart
+boto3
+faiss-cpu
+numpy
