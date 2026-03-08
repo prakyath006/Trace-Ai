@@ -7,14 +7,38 @@ import pickle
 from typing import List, Dict
 
 class BedrockEmbedder:
-    def __init__(self, region_name="us-east-1"):
-        self.bedrock = boto3.client(
-            service_name="bedrock-runtime",
-            region_name=region_name
-        )
+    def __init__(self, region_name=None):
+        self.region_name = region_name
         self.model_id = "amazon.titan-embed-text-v1"
         self.index = None
         self.metadata = []
+        self._bedrock = None
+
+    @property
+    def bedrock(self):
+        if self._bedrock is None:
+            import os
+            import boto3
+            # Reload env just in case we are in a sub-thread/worker
+            from pathlib import Path
+            from dotenv import load_dotenv
+            root_env = Path(__file__).resolve().parent.parent / '.env'
+            if root_env.exists():
+                load_dotenv(dotenv_path=root_env, override=True)
+            
+            region = self.region_name or os.getenv("AWS_REGION", "us-east-1")
+            access_key = os.getenv("AWS_ACCESS_KEY_ID")
+            secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+            
+            print(f"DEBUG: Initializing Bedrock client with Region={region}, AccessKey={'SET' if access_key else 'NONE'}", flush=True)
+            
+            self._bedrock = boto3.client(
+                service_name="bedrock-runtime",
+                region_name=region,
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key
+            )
+        return self._bedrock
 
     def get_embedding(self, text: str) -> List[float]:
         body = json.dumps({"inputText": text})

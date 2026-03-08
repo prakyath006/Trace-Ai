@@ -1,9 +1,26 @@
+import os
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()  # Must be FIRST — loads AWS credentials before boto3 clients are created
+
+# Load from the root .env file specifically
+root_env = Path(__file__).resolve().parent.parent / '.env'
+print(f"DEBUG: Attempting to load .env from {root_env}")
+if root_env.exists():
+    load_dotenv(dotenv_path=root_env)
+    print("DEBUG: .env file found and loaded.")
+else:
+    print("DEBUG: .env file NOT FOUND at expected path!")
+    load_dotenv() # Fallback
+
+print(f"DEBUG: AWS_ACCESS_KEY_ID is {'SET' if os.getenv('AWS_ACCESS_KEY_ID') else 'MISSING'}", flush=True)
+print(f"DEBUG: AWS_SECRET_ACCESS_KEY is {'SET' if os.getenv('AWS_SECRET_ACCESS_KEY') else 'MISSING'}", flush=True)
+
+print("DEBUG: Importing routes.py...", flush=True)
+from backend.routes import router
+print("DEBUG: routes.py imported successfully.", flush=True)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes import router
 
 app = FastAPI(title="TraceAI - AI Mentor for Debugging")
 

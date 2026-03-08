@@ -3,13 +3,37 @@ import json
 from typing import List, Dict
 
 class BedrockAnalyzer:
-    def __init__(self, region_name="us-east-1"):
-        self.bedrock = boto3.client(
-            service_name="bedrock-runtime",
-            region_name=region_name
-        )
+    def __init__(self, region_name=None):
+        self.region_name = region_name
         # Amazon Nova Lite — current-gen Amazon model, no Marketplace billing required
         self.model_id = "amazon.nova-lite-v1:0"
+        self._bedrock = None
+
+    @property
+    def bedrock(self):
+        if self._bedrock is None:
+            import os
+            import boto3
+            # Reload env just in case we are in a sub-thread/worker
+            from pathlib import Path
+            from dotenv import load_dotenv
+            root_env = Path(__file__).resolve().parent.parent / '.env'
+            if root_env.exists():
+                load_dotenv(dotenv_path=root_env, override=True)
+
+            region = self.region_name or os.getenv("AWS_REGION", "us-east-1")
+            access_key = os.getenv("AWS_ACCESS_KEY_ID")
+            secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+
+            print(f"DEBUG: Initializing Bedrock Analyzer with Region={region}, AccessKey={'SET' if access_key else 'NONE'}", flush=True)
+
+            self._bedrock = boto3.client(
+                service_name="bedrock-runtime",
+                region_name=region,
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key
+            )
+        return self._bedrock
 
     def analyze_error(self, error_trace: str, context: List[Dict]) -> str:
         """Sends error trace and context to Amazon Nova Lite for analysis."""
